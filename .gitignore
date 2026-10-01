@@ -141,3 +141,6 @@ Pods/
 /fastlane/fastlane/Appfile
 /Gemfile.lock
 /enterprise/register/Gemfile.lock
+
+# Local TMDB credential (bundled only on this machine)
+AbsoluteCinema/Configuration/TMDBConfig.plist
