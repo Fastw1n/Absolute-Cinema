@@ -1,6 +1,7 @@
 import Foundation
 import SwiftData
 
+// @Model сообщает SwiftData, что объекты этого класса нужно хранить в базе.
 @Model
 final class RatedMovie {
     @Attribute(.unique) var movieID: Int
@@ -12,7 +13,7 @@ final class RatedMovie {
     var genres: [String]
     var tmdbRating: Double
     var voteCount: Int
-    var posterPath: String?
+    var posterName: String?
     var userRating: Int
     var comment: String
     var ratedAt: Date
@@ -27,18 +28,30 @@ final class RatedMovie {
         genres = movie.genres
         tmdbRating = movie.rating
         voteCount = movie.voteCount
-        posterPath = movie.posterPath
+        posterName = movie.posterName
         userRating = rating
         self.comment = comment
         self.ratedAt = ratedAt
     }
 
+    // Для экрана возвращаем обычную структуру: он не меняет объект базы напрямую.
     var snapshot: SavedRating {
         SavedRating(
-            movie: Movie(id: movieID, title: title, originalTitle: originalTitle,
-                         year: year, runtime: runtime, overview: overview, genres: genres,
-                         rating: tmdbRating, voteCount: voteCount, posterPath: posterPath),
-            rating: userRating, comment: comment, ratedAt: ratedAt
+            movie: Movie(
+                id: movieID,
+                title: title,
+                originalTitle: originalTitle,
+                year: year,
+                runtime: runtime,
+                overview: overview,
+                genres: genres,
+                rating: tmdbRating,
+                voteCount: voteCount,
+                posterName: posterName
+            ),
+            rating: userRating,
+            comment: comment,
+            ratedAt: ratedAt
         )
     }
 
@@ -51,6 +64,6 @@ final class RatedMovie {
         genres = movie.genres
         tmdbRating = movie.rating
         voteCount = movie.voteCount
-        posterPath = movie.posterPath
+        posterName = movie.posterName
     }
 }

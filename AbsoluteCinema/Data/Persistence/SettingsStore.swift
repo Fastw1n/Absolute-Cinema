@@ -1,25 +1,22 @@
 import Foundation
 import Observation
 
+// UserDefaults подходит для одной небольшой настройки — способа сортировки.
 @MainActor
 @Observable
 final class SettingsStore {
-    static let sortKey = "ratings.sortOrder"
+    static let sortKey = "dev.ratings.sortOrder"
     private let defaults: UserDefaults
     private(set) var sortOrder: RatingSortOrder
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        sortOrder = defaults.string(forKey: Self.sortKey).flatMap(RatingSortOrder.init) ?? .newestFirst
+        let savedValue = defaults.string(forKey: Self.sortKey) ?? ""
+        sortOrder = RatingSortOrder(rawValue: savedValue) ?? .newestFirst
     }
 
     func setSortOrder(_ order: RatingSortOrder) {
         defaults.set(order.rawValue, forKey: Self.sortKey)
         sortOrder = order
-    }
-
-    func resetSortOrder() {
-        defaults.removeObject(forKey: Self.sortKey)
-        sortOrder = .newestFirst
     }
 }

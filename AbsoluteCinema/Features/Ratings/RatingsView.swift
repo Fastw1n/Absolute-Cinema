@@ -19,10 +19,7 @@ struct RatingsView: View {
                     }
                 }
                 .pickerStyle(.menu)
-                Spacer(minLength: 0)
-                Button("Сбросить", action: viewModel.resetSortOrder)
-                    .font(.subheadline)
-                    .accessibilityLabel("Сбросить сортировку")
+                Spacer()
             }
             .padding(.horizontal)
 
@@ -35,23 +32,7 @@ struct RatingsView: View {
             } else {
                 List(viewModel.entries) { entry in
                     NavigationLink(value: entry.id) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            MovieRow(movie: entry.movie.summary)
-                            HStack {
-                                Label("Моя оценка: \(entry.rating) / 10", systemImage: "star.fill")
-                                    .foregroundStyle(Color.accentColor)
-                                Spacer()
-                                Text(entry.ratedAt, format: .dateTime.day().month().year())
-                                    .foregroundStyle(Color("SecondaryText"))
-                            }
-                            .font(.caption)
-                            if !entry.comment.isEmpty {
-                                Text(entry.comment)
-                                    .font(.subheadline)
-                                    .foregroundStyle(Color("SecondaryText"))
-                                    .lineLimit(2)
-                            }
-                        }
+                        RatedMovieRow(entry: entry)
                     }
                     .listRowBackground(Color("Background"))
                     .swipeActions {
@@ -67,5 +48,44 @@ struct RatingsView: View {
         .navigationTitle("Мои оценки")
         .onAppear { viewModel.reload() }
         .onChange(of: viewModel.repositoryRevision) { _, _ in viewModel.reload() }
+    }
+}
+
+// Комментарий хранится и редактируется в карточке, но не показывается в строке.
+private struct RatedMovieRow: View {
+    let entry: SavedRating
+
+    var body: some View {
+        HStack(spacing: 12) {
+            MoviePoster(name: entry.movie.posterName)
+                .frame(width: 60, height: 90)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(entry.movie.title)
+                    .font(.headline)
+                Text(entry.movie.year.map(String.init) ?? "Год не указан")
+                    .font(.subheadline)
+                    .foregroundStyle(Color("SecondaryText"))
+                Text("TMDB: \(entry.movie.rating.formatted(.number.precision(.fractionLength(1)))) / 10")
+                    .font(.caption)
+                    .foregroundStyle(Color("SecondaryText"))
+            }
+
+            Spacer(minLength: 4)
+
+            VStack(spacing: 4) {
+                Text("Моя оценка")
+                    .font(.caption2)
+                    .foregroundStyle(Color("SecondaryText"))
+                Text("\(entry.rating)")
+                    .font(.title2.bold())
+                    .foregroundStyle(Color.accentColor)
+                Text("из 10")
+                    .font(.caption2)
+                    .foregroundStyle(Color("SecondaryText"))
+            }
+            .fixedSize()
+        }
+        .padding(.vertical, 6)
     }
 }

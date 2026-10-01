@@ -1,51 +1,46 @@
 import SwiftUI
 
+// Общее оформление постера для поиска, карточки и списка оценок.
 struct MoviePoster: View {
-    let path: String?
-
-    private var url: URL? {
-        guard let path, !path.isEmpty else { return nil }
-        return URL(string: "https://image.tmdb.org/t/p/w500\(path)")
-    }
+    let name: String?
 
     var body: some View {
-        AsyncImage(url: url) { phase in
-            if let image = phase.image {
-                image.resizable().scaledToFit()
+        Group {
+            if let name {
+                Image(name)
+                    .resizable()
+                    .scaledToFit()
             } else {
+                // Если у мока нет постера, показываем нейтральную заглушку.
                 ZStack {
                     Color("Surface")
-                    if url != nil, phase.error == nil {
-                        ProgressView()
-                    } else {
-                        Image(systemName: "film")
-                            .foregroundStyle(Color("SecondaryText"))
-                    }
+                    Image(systemName: "film")
+                        .font(.title2)
+                        .foregroundStyle(Color("SecondaryText"))
                 }
+                .aspectRatio(2.0 / 3.0, contentMode: .fit)
             }
         }
+        .clipShape(RoundedRectangle(cornerRadius: 12))
         .accessibilityHidden(true)
     }
 }
 
 struct MovieRow: View {
-    let movie: MovieSummary
+    let movie: Movie
 
     var body: some View {
         HStack(spacing: 14) {
-            MoviePoster(path: movie.posterPath)
+            MoviePoster(name: movie.posterName)
                 .frame(width: 54, height: 81)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
             VStack(alignment: .leading, spacing: 6) {
                 Text(movie.title).font(.headline)
-                HStack {
-                    Text(movie.year.map(String.init) ?? "Год не указан")
-                    if movie.rating > 0 {
-                        Text("TMDB \(movie.rating.formatted(.number.precision(.fractionLength(1))))")
-                    }
-                }
-                .font(.caption).foregroundStyle(Color("SecondaryText"))
+                Text(movie.year.map(String.init) ?? "Год не указан")
+                    .font(.caption)
+                Text("TMDB: \(movie.rating.formatted(.number.precision(.fractionLength(1)))) / 10")
+                    .font(.caption)
             }
+            .foregroundStyle(Color("PrimaryText"))
         }
         .padding(.vertical, 4)
     }

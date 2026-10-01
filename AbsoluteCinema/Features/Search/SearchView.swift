@@ -10,13 +10,9 @@ struct SearchView: View {
 
     var body: some View {
         Group {
-            if viewModel.isSearching {
-                ProgressView("Поиск фильмов…").frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if let message = viewModel.errorMessage {
-                ErrorNotice(message: message, retry: viewModel.retry)
-            } else if !viewModel.hasSearched {
-                ContentUnavailableView("Найдите фильм", systemImage: "magnifyingglass",
-                                       description: Text("Введите название, чтобы посмотреть сведения и оставить свою оценку."))
+            if !viewModel.hasQuery {
+                // Пока строка пустая, результатов под ней нет.
+                Color.clear
             } else if viewModel.results.isEmpty {
                 ContentUnavailableView("Ничего не найдено", systemImage: "magnifyingglass",
                                        description: Text("Попробуйте другое название."))
@@ -38,8 +34,6 @@ struct SearchView: View {
         .searchable(text: $viewModel.query, isPresented: $isSearchPresented,
                     placement: .navigationBarDrawer(displayMode: .always),
                     prompt: "Название фильма")
-        .onChange(of: viewModel.query) { _, _ in viewModel.queryChanged() }
-        .onSubmit(of: .search) { viewModel.submit() }
         .onDisappear { isSearchPresented = false }
     }
 }

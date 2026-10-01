@@ -14,7 +14,7 @@ enum RatingSortOrder: String, CaseIterable, Identifiable {
     }
 }
 
-struct SavedRating: Identifiable, Equatable, Sendable {
+struct SavedRating: Identifiable, Equatable {
     let movie: Movie
     let rating: Int
     let comment: String

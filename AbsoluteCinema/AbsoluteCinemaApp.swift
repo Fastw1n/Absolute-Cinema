@@ -13,28 +13,31 @@ struct AbsoluteCinemaApp: App {
     }
 }
 
+// Эти объекты общие для всех экранов и создаются один раз при запуске.
 @MainActor
-private final class AppDependencies {
-    let movies: any MovieRepositoryProtocol
+private final class AppData {
+    let movies: MovieRepository
     let ratings: RatingRepository
     let settings = SettingsStore()
     let container: ModelContainer
 
     init() throws {
-        container = try ModelContainer(for: RatedMovie.self)
+        // Отдельный файл базы для dev сохраняет данные версии из main.
+        let configuration = ModelConfiguration("DevRatings")
+        container = try ModelContainer(for: RatedMovie.self, configurations: configuration)
         ratings = RatingRepository(container: container)
-        movies = MovieRepository(client: MovieAPIClient(token: TMDBConfiguration.token()))
+        movies = MovieRepository()
     }
 }
 
 private struct AppRootView: View {
-    @State private var dependencies: AppDependencies?
+    @State private var appData: AppData?
     @State private var errorMessage: String?
 
     var body: some View {
         Group {
-            if let dependencies {
-                MainTabs(dependencies: dependencies)
+            if let appData {
+                MainTabs(appData: appData)
             } else if let errorMessage {
                 ErrorNotice(message: errorMessage, retry: initialize)
             } else {
@@ -43,12 +46,12 @@ private struct AppRootView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color("Background"))
-        .task { if dependencies == nil { initialize() } }
+        .onAppear { if appData == nil { initialize() } }
     }
 
     private func initialize() {
         do {
-            dependencies = try AppDependencies()
+            appData = try AppData()
             errorMessage = nil
         } catch {
             errorMessage = "Не удалось открыть хранилище оценок. Повторите запуск хранилища."
@@ -57,15 +60,16 @@ private struct AppRootView: View {
 }
 
 private struct MainTabs: View {
-    let dependencies: AppDependencies
+    let appData: AppData
+    // @State сохраняет ViewModel между перерисовками интерфейса.
     @State private var search: SearchViewModel
     @State private var ratings: RatingsViewModel
 
-    init(dependencies: AppDependencies) {
-        self.dependencies = dependencies
-        _search = State(initialValue: SearchViewModel(repository: dependencies.movies))
-        _ratings = State(initialValue: RatingsViewModel(repository: dependencies.ratings,
-                                                       settings: dependencies.settings))
+    init(appData: AppData) {
+        self.appData = appData
+        _search = State(initialValue: SearchViewModel(repository: appData.movies))
+        _ratings = State(initialValue: RatingsViewModel(repository: appData.ratings,
+                                                       settings: appData.settings))
     }
 
     var body: some View {
@@ -86,9 +90,14 @@ private struct MainTabs: View {
         .toolbarBackground(.visible, for: .tabBar)
     }
 
+    @ViewBuilder
     private func details(id: Int) -> some View {
-        MovieDetailsView(viewModel: MovieDetailsViewModel(
-            movieID: id, movies: dependencies.movies, ratings: dependencies.ratings
-        ))
+        if let movie = appData.movies.movie(id: id) {
+            MovieDetailsView(viewModel: MovieDetailsViewModel(
+                movie: movie, ratings: appData.ratings
+            ))
+        } else {
+            ContentUnavailableView("Фильм не найден", systemImage: "film")
+        }
     }
 }

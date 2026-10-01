@@ -4,96 +4,73 @@ import Observation
 @MainActor
 @Observable
 final class MovieDetailsViewModel {
-    let movieID: Int
+    let movie: Movie
     var draftRating = 0
     var comment = ""
-    private(set) var movie: Movie?
-    private(set) var savedRating: SavedRating?
-    private(set) var isLoading = false
-    private(set) var isSavedCopy = false
-    private(set) var loadError: String?
     var storageError: String?
+    private(set) var savedRating: SavedRating?
     private(set) var saveMessage: String?
+    private let ratings: RatingRepository
+    private var didLoadRating = false
 
-    private let movies: any MovieRepositoryProtocol
-    private let ratings: any RatingRepositoryProtocol
-    private var didLoadPersonalData = false
-
-    init(movieID: Int, movies: any MovieRepositoryProtocol, ratings: any RatingRepositoryProtocol) {
-        self.movieID = movieID
-        self.movies = movies
+    init(movie: Movie, ratings: RatingRepository) {
+        self.movie = movie
         self.ratings = ratings
     }
 
     var repositoryRevision: Int { ratings.revision }
 
     var hasChanges: Bool {
-        draftRating != (savedRating?.rating ?? 0) || comment != (savedRating?.comment ?? "")
+        return draftRating != (savedRating?.rating ?? 0)
+            || comment != (savedRating?.comment ?? "")
     }
 
-    var canSave: Bool { (1...10).contains(draftRating) && hasChanges && movie != nil }
+    var canSave: Bool {
+        return (1...10).contains(draftRating) && hasChanges
+    }
 
     var metadata: String {
-        guard let movie else { return "" }
         let year = movie.year.map(String.init) ?? "Год не указан"
-        guard let runtime = movie.runtime else { return year }
-        return "\(year) · \(runtime / 60) ч \(runtime % 60) мин"
+        if let runtime = movie.runtime {
+            return "\(year) · \(runtime / 60) ч \(runtime % 60) мин"
+        }
+        return year
     }
 
-    func refreshPersonalData() {
-        guard !didLoadPersonalData || !hasChanges else { return }
+    func loadRating() {
+        // Повторное обновление не должно стирать ещё не сохранённый комментарий.
+        if didLoadRating && hasChanges { return }
         do {
-            savedRating = try ratings.rating(for: movieID)
+            savedRating = try ratings.rating(for: movie.id)
             draftRating = savedRating?.rating ?? 0
             comment = savedRating?.comment ?? ""
-            didLoadPersonalData = true
-            if movie == nil, let savedRating {
-                movie = savedRating.movie
-                isSavedCopy = true
-            }
+            didLoadRating = true
         } catch {
-            storageError = "Не удалось прочитать вашу оценку. Попробуйте открыть карточку ещё раз."
-        }
-    }
-
-    func load() async {
-        refreshPersonalData()
-        guard !isLoading else { return }
-        isLoading = true
-        loadError = nil
-        defer { isLoading = false }
-        do {
-            let result = try await movies.details(id: movieID)
-            try Task.checkCancellation()
-            movie = result
-            isSavedCopy = false
-        } catch {
-            guard !Task.isCancelled else { return }
-            loadError = AppError.message(for: error)
+            storageError = "Не удалось прочитать вашу оценку."
         }
     }
 
     func save() {
-        guard let movie else { return }
+        guard canSave else { return }
         do {
-            let saved = try ratings.save(movie: movie, rating: draftRating, comment: comment)
-            savedRating = saved
+            savedRating = try ratings.save(movie: movie, rating: draftRating, comment: comment)
             saveMessage = "Оценка и комментарий сохранены"
+            storageError = nil
         } catch {
-            storageError = error is AppError ? AppError.message(for: error)
-                : "Не удалось сохранить оценку и комментарий. Изменения остались в форме — повторите сохранение."
+            storageError = "Не удалось сохранить оценку. Изменения остались в форме."
         }
     }
 
     func removeRating() {
         do {
-            try ratings.remove(movieID: movieID)
+            try ratings.remove(movieID: movie.id)
             savedRating = nil
             draftRating = 0
             comment = ""
             saveMessage = nil
+            storageError = nil
         } catch {
-            storageError = "Не удалось удалить оценку. Попробуйте ещё раз."
+            storageError = "Не удалось удалить оценку."
         }
     }
 }

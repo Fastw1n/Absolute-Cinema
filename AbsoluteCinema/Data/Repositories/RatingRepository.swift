@@ -2,27 +2,17 @@ import Foundation
 import Observation
 import SwiftData
 
-@MainActor
-protocol RatingRepositoryProtocol: AnyObject {
-    var revision: Int { get }
-    func rating(for movieID: Int) throws -> SavedRating?
-    func ratings(sortedBy order: RatingSortOrder) throws -> [SavedRating]
-    func save(movie: Movie, rating: Int, comment: String) throws -> SavedRating
-    func remove(movieID: Int) throws
-}
-
 /// Единственная точка CRUD. View и ViewModel не работают с ModelContext напрямую.
 @MainActor
 @Observable
-final class RatingRepository: RatingRepositoryProtocol {
+final class RatingRepository {
+    // После сохранения или удаления это число меняется: экраны перечитывают оценки.
     private(set) var revision = 0
     private let context: ModelContext
-    private let now: () -> Date
 
-    init(container: ModelContainer, now: @escaping () -> Date = Date.init) {
+    init(container: ModelContainer) {
         context = ModelContext(container)
         context.autosaveEnabled = false
-        self.now = now
     }
 
     private func entry(for movieID: Int) throws -> RatedMovie? {
@@ -32,10 +22,12 @@ final class RatingRepository: RatingRepositoryProtocol {
         return try context.fetch(descriptor).first
     }
 
+    // Read: найти одну сохранённую оценку по ID фильма.
     func rating(for movieID: Int) throws -> SavedRating? {
         try entry(for: movieID)?.snapshot
     }
 
+    // Read: прочитать все оценки в выбранном порядке.
     func ratings(sortedBy order: RatingSortOrder) throws -> [SavedRating] {
         var descriptors: [SortDescriptor<RatedMovie>] = []
         if order == .highestFirst {
@@ -46,17 +38,21 @@ final class RatingRepository: RatingRepositoryProtocol {
         return try context.fetch(FetchDescriptor(sortBy: descriptors)).map(\.snapshot)
     }
 
+    // Create или Update: для одного фильма хранится только одна запись.
     func save(movie: Movie, rating: Int, comment: String) throws -> SavedRating {
         guard (1...10).contains(rating) else { throw AppError.invalidRating }
         let entry: RatedMovie
         if let existing = try self.entry(for: movie.id) {
             entry = existing
-            if existing.userRating != rating { existing.ratedAt = now() }
+            // Изменение только комментария не меняет дату выставления оценки.
+            if existing.userRating != rating {
+                existing.ratedAt = Date()
+            }
             existing.userRating = rating
             existing.comment = comment
             existing.updateMovie(movie)
         } else {
-            entry = RatedMovie(movie: movie, rating: rating, comment: comment, ratedAt: now())
+            entry = RatedMovie(movie: movie, rating: rating, comment: comment, ratedAt: Date())
             context.insert(entry)
         }
         do {
@@ -69,6 +65,7 @@ final class RatingRepository: RatingRepositoryProtocol {
         return entry.snapshot
     }
 
+    // Delete: удалить запись с оценкой и комментарием.
     func remove(movieID: Int) throws {
         guard let entry = try entry(for: movieID) else { return }
         context.delete(entry)

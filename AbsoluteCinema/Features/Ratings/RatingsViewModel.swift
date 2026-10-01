@@ -7,9 +7,9 @@ final class RatingsViewModel {
     private(set) var entries: [SavedRating] = []
     var errorMessage: String?
     let settings: SettingsStore
-    private let repository: any RatingRepositoryProtocol
+    private let repository: RatingRepository
 
-    init(repository: any RatingRepositoryProtocol, settings: SettingsStore) {
+    init(repository: RatingRepository, settings: SettingsStore) {
         self.repository = repository
         self.settings = settings
     }
@@ -27,11 +27,6 @@ final class RatingsViewModel {
 
     func setSortOrder(_ order: RatingSortOrder) {
         settings.setSortOrder(order)
-        reload()
-    }
-
-    func resetSortOrder() {
-        settings.resetSortOrder()
         reload()
     }
 

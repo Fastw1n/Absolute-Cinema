@@ -29,9 +29,20 @@
 		B184160D30657D120091D773 /* AbsoluteCinemaUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AbsoluteCinemaUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+        C00100000000000000000001 /* Local configuration excluded from dev */ = {
+            isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+            membershipExceptions = (
+                Configuration/TMDBConfig.plist,
+            );
+            target = B18415F330657D110091D773 /* AbsoluteCinema */;
+        };
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		B18415F630657D110091D773 /* AbsoluteCinema */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (C00100000000000000000001);
 			path = AbsoluteCinema;
 			sourceTree = "<group>";
 		};

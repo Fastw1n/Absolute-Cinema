@@ -1,18 +1,20 @@
 import Foundation
 
-protocol MovieRepositoryProtocol: Sendable {
-    func search(query: String) async throws -> [MovieSummary]
-    func details(id: Int) async throws -> Movie
-}
+// В учебной версии источником фильмов служит массив в MockMovies.
+final class MovieRepository {
+    func search(query: String) -> [Movie] {
+        let text = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        if text.isEmpty {
+            return []
+        }
 
-struct MovieRepository: MovieRepositoryProtocol {
-    let client: MovieAPIClient
-
-    func search(query: String) async throws -> [MovieSummary] {
-        try await client.search(query: query)
+        return MockMovies.movies.filter { movie in
+            movie.title.localizedCaseInsensitiveContains(text)
+                || movie.originalTitle.localizedCaseInsensitiveContains(text)
+        }
     }
 
-    func details(id: Int) async throws -> Movie {
-        try await client.details(id: id)
+    func movie(id: Int) -> Movie? {
+        return MockMovies.movies.first { $0.id == id }
     }
 }
