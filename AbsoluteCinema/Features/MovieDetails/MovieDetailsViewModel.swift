@@ -14,6 +14,11 @@ final class MovieDetailsViewModel {
     private(set) var isLoadingDetails = false
     private(set) var detailsError: String?
     private(set) var detailsRequestID = 0
+    private(set) var isSendingRating = false
+    private(set) var ratingSendError: String?
+    private(set) var ratingSendMessage: String?
+    private var sentRating: Int?
+    @ObservationIgnored private var ratingSendTask: Task<Void, Never>?
     private let client: TMDBClient
     private let ratings: RatingRepository
     private let watchlist: WatchlistRepository
@@ -32,6 +37,10 @@ final class MovieDetailsViewModel {
     var watchlistRevision: Int { watchlist.revision }
     var canRate: Bool { movie.hasDetails }
     var canToggleWatchlist: Bool { movie.hasDetails || isWatchlisted }
+    var canSendRating: Bool {
+        guard let savedRating else { return false }
+        return !isSendingRating && sentRating != savedRating.rating
+    }
 
     var hasChanges: Bool {
         return draftRating != (savedRating?.rating ?? 0)
@@ -72,11 +81,46 @@ final class MovieDetailsViewModel {
         detailsRequestID += 1
     }
 
+    func sendSavedRating() {
+        guard canSendRating, let savedRating else { return }
+        let rating = savedRating.rating
+        isSendingRating = true
+        ratingSendError = nil
+        ratingSendMessage = nil
+        ratingSendTask = Task {
+            do {
+                let result = try await client.sendRating(movieID: movie.id, rating: rating)
+                try Task.checkCancellation()
+                sentRating = rating
+                ratingSendMessage = result.message(rating: rating)
+                isSendingRating = false
+                ratingSendTask = nil
+            } catch {
+                guard !Task.isCancelled else { return }
+                isSendingRating = false
+                ratingSendTask = nil
+                ratingSendError = (error as? TMDBError)?.errorDescription
+                    ?? "Не удалось отправить оценку в TMDB. Повторите отправку."
+            }
+        }
+    }
+
+    func cancelSendingRating() {
+        ratingSendTask?.cancel()
+        ratingSendTask = nil
+        isSendingRating = false
+    }
+
     func loadRating() {
         // повторное обновление не должно стирать ещё не сохранённый комментарий
         if didLoadRating && hasChanges { return }
         do {
+            let previousRating = savedRating?.rating
             savedRating = try ratings.rating(for: movie.id)
+            if previousRating != savedRating?.rating {
+                ratingSendError = nil
+                ratingSendMessage = nil
+            }
             // Если сеть недоступна, сохранённый снимок заменит краткий результат поиска.
             if !movie.hasDetails, let savedRating {
                 movie = savedRating.movie
@@ -121,6 +165,8 @@ final class MovieDetailsViewModel {
         guard canSave else { return false }
         do {
             savedRating = try ratings.save(movie: movie, rating: draftRating, comment: comment)
+            ratingSendError = nil
+            if sentRating != savedRating?.rating { ratingSendMessage = nil }
             saveMessage = "Оценка и комментарий сохранены"
             storageError = nil
             return true
@@ -138,6 +184,10 @@ final class MovieDetailsViewModel {
     func removeRating() {
         do {
             try ratings.remove(movieID: movie.id)
+            cancelSendingRating()
+            sentRating = nil
+            ratingSendError = nil
+            ratingSendMessage = nil
             savedRating = nil
             draftRating = 0
             comment = ""

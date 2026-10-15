@@ -67,6 +67,22 @@ struct MovieDetailsView: View {
                         }
                         Text("Дата оценки: \(saved.ratedAt.formatted(date: .abbreviated, time: .shortened))")
                             .font(.caption).foregroundStyle(Color("SecondaryText"))
+                        Button(action: viewModel.sendSavedRating) {
+                            HStack {
+                                if viewModel.isSendingRating { ProgressView() }
+                                Text(viewModel.isSendingRating ? "Отправляем оценку…" : "Отправить оценку в TMDB")
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(!viewModel.canSendRating)
+                        Text("В гостевую сессию TMDB отправляется только число. Комментарий остаётся на устройстве.")
+                            .font(.caption).foregroundStyle(Color("SecondaryText"))
+                        if let message = viewModel.ratingSendError {
+                            ErrorNotice(message: message, retry: viewModel.sendSavedRating)
+                        }
+                        if let message = viewModel.ratingSendMessage {
+                            Text(message).font(.caption).foregroundStyle(Color("SecondaryText"))
+                        }
                         Button("Убрать оценку и комментарий", role: .destructive,
                                action: viewModel.removeRating)
                     }
@@ -95,6 +111,7 @@ struct MovieDetailsView: View {
             viewModel.loadWatchlist()
         }
         .task(id: viewModel.detailsRequestID) { await viewModel.loadDetails() }
+        .onDisappear { viewModel.cancelSendingRating() }
         .onChange(of: viewModel.repositoryRevision) { _, _ in viewModel.loadRating() }
         .onChange(of: viewModel.watchlistRevision) { _, _ in viewModel.loadWatchlist() }
         .sheet(isPresented: $showsRatingEditor, onDismiss: viewModel.discardRatingChanges) {
