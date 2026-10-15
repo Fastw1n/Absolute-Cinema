@@ -12,7 +12,7 @@ struct MovieDetailsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 let movie = viewModel.movie
-                MoviePoster(name: movie.posterName)
+                MoviePoster(name: movie.posterName, posterPath: movie.posterPath)
                     .frame(height: 280)
                     .frame(maxWidth: .infinity)
                 VStack(alignment: .leading, spacing: 8) {
@@ -33,18 +33,32 @@ struct MovieDetailsView: View {
                 }
                 .font(.subheadline)
 
+                if viewModel.isLoadingDetails {
+                    ProgressView("Загружаем сведения…")
+                }
+                if let message = viewModel.detailsError {
+                    ErrorNotice(message: message, retry: viewModel.retryDetails)
+                }
+
                 VStack(alignment: .leading, spacing: 12) {
                     Button(viewModel.savedRating == nil ? "Оценить" : "Изменить оценку") {
                         showsRatingEditor = true
                     }
                     .buttonStyle(.borderedProminent)
                     .foregroundStyle(Color("Background"))
+                    .disabled(!viewModel.canRate)
 
                     Button(action: viewModel.toggleWatchlist) {
                         Label(viewModel.isWatchlisted ? "Убрать из желаемого" : "Хочу посмотреть",
                               systemImage: viewModel.isWatchlisted ? "bookmark.fill" : "bookmark")
                     }
                     .buttonStyle(.bordered)
+                    .disabled(!viewModel.canToggleWatchlist)
+
+                    if !viewModel.canRate {
+                        Text("Сохранение станет доступно после загрузки полной карточки.")
+                            .font(.caption).foregroundStyle(Color("SecondaryText"))
+                    }
 
                     if let saved = viewModel.savedRating {
                         Text("Моя оценка: \(saved.rating) из 10").font(.headline)
@@ -80,6 +94,7 @@ struct MovieDetailsView: View {
             viewModel.loadRating()
             viewModel.loadWatchlist()
         }
+        .task(id: viewModel.detailsRequestID) { await viewModel.loadDetails() }
         .onChange(of: viewModel.repositoryRevision) { _, _ in viewModel.loadRating() }
         .onChange(of: viewModel.watchlistRevision) { _, _ in viewModel.loadWatchlist() }
         .sheet(isPresented: $showsRatingEditor, onDismiss: viewModel.discardRatingChanges) {
