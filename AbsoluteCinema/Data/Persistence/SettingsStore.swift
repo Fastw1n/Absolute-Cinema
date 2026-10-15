@@ -1,7 +1,6 @@
 import Foundation
 import Observation
 
-// UserDefaults подходит для одной небольшой настройки — способа сортировки.
 @MainActor
 @Observable
 final class SettingsStore {

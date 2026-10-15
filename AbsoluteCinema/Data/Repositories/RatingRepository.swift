@@ -2,17 +2,26 @@ import Foundation
 import Observation
 import SwiftData
 
-/// Единственная точка CRUD. View и ViewModel не работают с ModelContext напрямую.
 @MainActor
 @Observable
 final class RatingRepository {
-    // После сохранения или удаления это число меняется: экраны перечитывают оценки.
     private(set) var revision = 0
+    private let container: ModelContainer
     private let context: ModelContext
 
     init(container: ModelContainer) {
+        self.container = container
         context = ModelContext(container)
         context.autosaveEnabled = false
+    }
+
+    func ratingsInBackground(sortedBy order: RatingSortOrder) async throws -> [SavedRating] {
+        let container = container
+        // Создаём контекст вне MainActor, чтобы чтение не занимало поток интерфейса.
+        return try await Task.detached(priority: .userInitiated) {
+            let reader = SavedMoviesReader(modelContainer: container)
+            return try await reader.ratings(sortedBy: order)
+        }.value
     }
 
     private func entry(for movieID: Int) throws -> RatedMovie? {
@@ -22,12 +31,12 @@ final class RatingRepository {
         return try context.fetch(descriptor).first
     }
 
-    // Read: найти одну сохранённую оценку по ID фильма.
+    // найти одну сохранённую оценку по ID фильма
     func rating(for movieID: Int) throws -> SavedRating? {
         try entry(for: movieID)?.snapshot
     }
 
-    // Read: прочитать все оценки в выбранном порядке.
+    // прочитать все оценки в выбранном порядке
     func ratings(sortedBy order: RatingSortOrder) throws -> [SavedRating] {
         var descriptors: [SortDescriptor<RatedMovie>] = []
         if order == .highestFirst {
@@ -38,13 +47,13 @@ final class RatingRepository {
         return try context.fetch(FetchDescriptor(sortBy: descriptors)).map(\.snapshot)
     }
 
-    // Create или Update: для одного фильма хранится только одна запись.
+    // для одного фильма хранится только одна запись
     func save(movie: Movie, rating: Int, comment: String) throws -> SavedRating {
         guard (1...10).contains(rating) else { throw AppError.invalidRating }
         let entry: RatedMovie
         if let existing = try self.entry(for: movie.id) {
             entry = existing
-            // Изменение только комментария не меняет дату выставления оценки.
+            // изменение только комментария не меняет дату выставления оценки
             if existing.userRating != rating {
                 existing.ratedAt = Date()
             }
@@ -65,7 +74,7 @@ final class RatingRepository {
         return entry.snapshot
     }
 
-    // Delete: удалить запись с оценкой и комментарием.
+    // удалить запись с оценкой и комментарием.
     func remove(movieID: Int) throws {
         guard let entry = try entry(for: movieID) else { return }
         context.delete(entry)

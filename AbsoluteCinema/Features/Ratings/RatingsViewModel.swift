@@ -6,7 +6,9 @@ import Observation
 final class RatingsViewModel {
     private(set) var entries: [SavedRating] = []
     var errorMessage: String?
-    let settings: SettingsStore
+    private(set) var isLoading = false
+    @ObservationIgnored private var loadTask: Task<Void, Never>?
+    private let settings: SettingsStore
     private let repository: RatingRepository
 
     init(repository: RatingRepository, settings: SettingsStore) {
@@ -16,13 +18,32 @@ final class RatingsViewModel {
 
     var repositoryRevision: Int { repository.revision }
 
+    var sortOrder: RatingSortOrder { settings.sortOrder }
+
     func reload() {
-        do {
-            entries = try repository.ratings(sortedBy: settings.sortOrder)
-            errorMessage = nil
-        } catch {
-            errorMessage = "Не удалось прочитать сохранённые фильмы. Повторите загрузку."
+        loadTask?.cancel()
+        isLoading = true
+        errorMessage = nil
+        let order = settings.sortOrder
+        loadTask = Task {
+            do {
+                let loaded = try await repository.ratingsInBackground(sortedBy: order)
+                // Предыдущая загрузка не должна заменять результат новой сортировки
+                try Task.checkCancellation()
+                entries = loaded
+                isLoading = false
+            } catch {
+                guard !Task.isCancelled else { return }
+                isLoading = false
+                errorMessage = "Не удалось прочитать сохранённые фильмы. Повторите загрузку."
+            }
         }
+    }
+
+    func cancelLoading() {
+        loadTask?.cancel()
+        loadTask = nil
+        isLoading = false
     }
 
     func setSortOrder(_ order: RatingSortOrder) {
@@ -33,7 +54,6 @@ final class RatingsViewModel {
     func remove(_ entry: SavedRating) {
         do {
             try repository.remove(movieID: entry.id)
-            reload()
         } catch {
             errorMessage = "Не удалось удалить оценку. Попробуйте ещё раз."
         }

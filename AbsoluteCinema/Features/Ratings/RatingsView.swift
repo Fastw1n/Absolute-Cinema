@@ -1,17 +1,13 @@
 import SwiftUI
 
 struct RatingsView: View {
-    @State private var viewModel: RatingsViewModel
-
-    init(viewModel: RatingsViewModel) {
-        _viewModel = State(initialValue: viewModel)
-    }
+    let viewModel: RatingsViewModel
 
     var body: some View {
         VStack(spacing: 0) {
             HStack {
                 Picker("Сортировка", selection: Binding(
-                    get: { viewModel.settings.sortOrder },
+                    get: { viewModel.sortOrder },
                     set: { viewModel.setSortOrder($0) }
                 )) {
                     ForEach(RatingSortOrder.allCases) { order in
@@ -23,15 +19,18 @@ struct RatingsView: View {
             }
             .padding(.horizontal)
 
+            if viewModel.isLoading {
+                ProgressView("Загружаем список…").padding()
+            }
             if let message = viewModel.errorMessage {
                 ErrorNotice(message: message, retry: viewModel.reload)
             }
-            if viewModel.entries.isEmpty, viewModel.errorMessage == nil {
+            if viewModel.entries.isEmpty, viewModel.errorMessage == nil, !viewModel.isLoading {
                 ContentUnavailableView("Пока нет оценок", systemImage: "star",
                                        description: Text("Найдите фильм и сохраните свою оценку в его карточке."))
             } else {
                 List(viewModel.entries) { entry in
-                    NavigationLink(value: entry.id) {
+                    NavigationLink(value: entry.movie) {
                         RatedMovieRow(entry: entry)
                     }
                     .listRowBackground(Color("Background"))
@@ -47,6 +46,7 @@ struct RatingsView: View {
         .background(Color("Background"))
         .navigationTitle("Мои оценки")
         .onAppear { viewModel.reload() }
+        .onDisappear { viewModel.cancelLoading() }
         .onChange(of: viewModel.repositoryRevision) { _, _ in viewModel.reload() }
     }
 }
@@ -57,7 +57,7 @@ private struct RatedMovieRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            MoviePoster(name: entry.movie.posterName)
+            MoviePoster(name: entry.movie.posterName, pixelSize: 270)
                 .frame(width: 60, height: 90)
 
             VStack(alignment: .leading, spacing: 6) {

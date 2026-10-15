@@ -1,17 +1,19 @@
 import SwiftUI
 
-// Общее оформление постера для поиска, карточки и списка оценок.
+// Общее оформление постера для поиска, карточки и списка оценок
 struct MoviePoster: View {
     let name: String?
+    var pixelSize: CGFloat = 900
+    @State private var viewModel = MoviePosterViewModel()
 
     var body: some View {
         Group {
-            if let name {
-                Image(name)
+            if let image = viewModel.image {
+                Image(uiImage: image)
                     .resizable()
                     .scaledToFit()
             } else {
-                // Если у мока нет постера, показываем нейтральную заглушку.
+                // Если у мока нет постера, показываем нейтральную заглушку
                 ZStack {
                     Color("Surface")
                     Image(systemName: "film")
@@ -23,6 +25,7 @@ struct MoviePoster: View {
         }
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .accessibilityHidden(true)
+        .task(id: name) { await viewModel.load(name: name, pixelSize: pixelSize) }
     }
 }
 
@@ -31,7 +34,7 @@ struct MovieRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            MoviePoster(name: movie.posterName)
+            MoviePoster(name: movie.posterName, pixelSize: 270)
                 .frame(width: 54, height: 81)
             VStack(alignment: .leading, spacing: 6) {
                 Text(movie.title).font(.headline)

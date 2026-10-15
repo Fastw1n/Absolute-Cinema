@@ -1,24 +1,26 @@
 import SwiftUI
 
 struct SearchView: View {
-    @State private var viewModel: SearchViewModel
-    @State private var isSearchPresented = false
-
-    init(viewModel: SearchViewModel) {
-        _viewModel = State(initialValue: viewModel)
-    }
+    @Bindable var viewModel: SearchViewModel
 
     var body: some View {
-        Group {
-            if !viewModel.hasQuery {
-                // Пока строка пустая, результатов под ней нет.
-                Color.clear
-            } else if viewModel.results.isEmpty {
+        VStack(spacing: 0) {
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(Color("SecondaryText"))
+                TextField("Поиск фильмов", text: $viewModel.query)
+                    .submitLabel(.search)
+            }
+            .padding(14)
+            .background(Color("Surface"), in: RoundedRectangle(cornerRadius: 10))
+            .padding()
+
+            if viewModel.movies.isEmpty {
                 ContentUnavailableView("Ничего не найдено", systemImage: "magnifyingglass",
                                        description: Text("Попробуйте другое название."))
             } else {
-                List(viewModel.results) { movie in
-                    NavigationLink(value: movie.id) {
+                List(viewModel.movies) { movie in
+                    NavigationLink(value: movie) {
                         MovieRow(movie: movie)
                     }
                     .listRowBackground(Color("Background"))
@@ -31,9 +33,5 @@ struct SearchView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color("Background"))
         .navigationTitle("Поиск")
-        .searchable(text: $viewModel.query, isPresented: $isSearchPresented,
-                    placement: .navigationBarDrawer(displayMode: .always),
-                    prompt: "Название фильма")
-        .onDisappear { isSearchPresented = false }
     }
 }

@@ -1,7 +1,5 @@
 import Foundation
 
-// Данные заполнены вручную. Рейтинги TMDB здесь — значения для демонстрации,
-// они не обновляются. Постер «Космической одиссеи» лежит в Assets.
 enum MockMovies {
     static let movies: [Movie] = [
         Movie(

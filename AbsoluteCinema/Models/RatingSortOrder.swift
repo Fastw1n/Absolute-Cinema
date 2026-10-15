@@ -1,6 +1,6 @@
 import Foundation
 
-enum RatingSortOrder: String, CaseIterable, Identifiable {
+enum RatingSortOrder: String, CaseIterable, Identifiable, Sendable {
     case newestFirst
     case highestFirst
 
@@ -14,7 +14,7 @@ enum RatingSortOrder: String, CaseIterable, Identifiable {
     }
 }
 
-struct SavedRating: Identifiable, Equatable {
+struct SavedRating: Identifiable, Equatable, Sendable {
     let movie: Movie
     let rating: Int
     let comment: String

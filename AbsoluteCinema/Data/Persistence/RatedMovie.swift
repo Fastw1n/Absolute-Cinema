@@ -1,7 +1,6 @@
 import Foundation
 import SwiftData
 
-// @Model сообщает SwiftData, что объекты этого класса нужно хранить в базе.
 @Model
 final class RatedMovie {
     @Attribute(.unique) var movieID: Int
@@ -34,7 +33,7 @@ final class RatedMovie {
         self.ratedAt = ratedAt
     }
 
-    // Для экрана возвращаем обычную структуру: он не меняет объект базы напрямую.
+    // для экрана возвращаем обычную структуру
     var snapshot: SavedRating {
         SavedRating(
             movie: Movie(
@@ -64,6 +63,6 @@ final class RatedMovie {
         genres = movie.genres
         tmdbRating = movie.rating
         voteCount = movie.voteCount
-        posterName = movie.posterName
+        posterName = movie.posterName ?? posterName
     }
 }

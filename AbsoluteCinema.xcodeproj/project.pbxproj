@@ -30,7 +30,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-        C00100000000000000000001 /* Local configuration excluded from dev */ = {
+        C00100000000000000000001 /* Exceptions for AbsoluteCinema */ = {
             isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
             membershipExceptions = (
                 Configuration/TMDBConfig.plist,
@@ -42,7 +42,7 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		B18415F630657D110091D773 /* AbsoluteCinema */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (C00100000000000000000001);
+            exceptions = (C00100000000000000000001 /* Exceptions for AbsoluteCinema */,);
 			path = AbsoluteCinema;
 			sourceTree = "<group>";
 		};

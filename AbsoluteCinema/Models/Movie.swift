@@ -1,7 +1,6 @@
 import Foundation
 
-// Обычная структура с информацией о фильме. Она не сохраняется сама по себе.
-struct Movie: Identifiable, Equatable {
+struct Movie: Identifiable, Hashable, Sendable {
     let id: Int
     let title: String
     let originalTitle: String
