@@ -10,10 +10,12 @@ struct SearchView: View {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(Color("SecondaryText"))
                 TextField("Поиск фильмов", text: $viewModel.query)
+                    .accessibilityIdentifier("search.query")
                     .submitLabel(.search)
                     .focused($isSearchFocused)
                     .onSubmit(submitSearch)
                 Button("Найти", action: submitSearch)
+                    .accessibilityIdentifier("search.submit")
                     .disabled(!viewModel.canSearch)
             }
             .padding(14)
@@ -36,6 +38,7 @@ struct SearchView: View {
                     NavigationLink(value: movie) {
                         MovieRow(movie: movie)
                     }
+                    .accessibilityIdentifier("search.result.\(movie.id)")
                     .listRowBackground(Color("Background"))
                 }
                 .listStyle(.plain)

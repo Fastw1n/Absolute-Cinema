@@ -33,6 +33,7 @@ struct RatingsView: View {
                     NavigationLink(value: entry.movie) {
                         RatedMovieRow(entry: entry)
                     }
+                    .accessibilityIdentifier("ratings.movie.\(entry.movie.id)")
                     .listRowBackground(Color("Background"))
                     .swipeActions {
                         Button("Убрать оценку", role: .destructive) { viewModel.remove(entry) }

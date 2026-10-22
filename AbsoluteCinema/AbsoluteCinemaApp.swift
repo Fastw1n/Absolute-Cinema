@@ -6,15 +6,27 @@ import SwiftUI
 struct AbsoluteCinemaApp: App {
     private let repository: RatingRepository?
     private let watchlist: WatchlistRepository?
-    private let client = TMDBClient()
+    private let client: TMDBClient
 
     init() {
+        #if DEBUG
+        let isUITesting = ProcessInfo.processInfo.arguments.contains("--ui-testing")
+        client = isUITesting ? UITestSupport.makeClient() : TMDBClient()
+        #else
+        let isUITesting = false
+        client = TMDBClient()
+        #endif
+
         do {
-            let configuration = ModelConfiguration("DevRatings")
+            let configuration = ModelConfiguration("DevRatings", isStoredInMemoryOnly: isUITesting)
             let container = try ModelContainer(for: RatedMovie.self, WatchlistMovie.self,
                                                configurations: configuration)
 
-            repository = RatingRepository(container: container)
+            let ratings = RatingRepository(container: container)
+            #if DEBUG
+            if isUITesting { try UITestSupport.seed(ratings: ratings) }
+            #endif
+            repository = ratings
             watchlist = WatchlistRepository(container: container)
         } catch {
             repository = nil

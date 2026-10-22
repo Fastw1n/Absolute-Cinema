@@ -3,6 +3,7 @@ import Foundation
 // Actor выполняет обработку ответов отдельно от состояния интерфейса на MainActor.
 actor TMDBClient {
     private let session: URLSession
+    private let configurationOverride: TMDBConfiguration?
     private var guestSession: (id: String, expiresAt: Date)?
 
     private enum Method: String {
@@ -10,8 +11,9 @@ actor TMDBClient {
         case post = "POST"
     }
 
-    init(session: URLSession = .shared) {
+    init(session: URLSession = .shared, configuration: TMDBConfiguration? = nil) {
         self.session = session
+        configurationOverride = configuration
     }
 
     func searchMovies(query: String) async throws -> [Movie] {
@@ -92,7 +94,7 @@ actor TMDBClient {
         queryItems: [URLQueryItem] = [], body: Data? = nil
     ) async throws -> Response {
         try Task.checkCancellation()
-        let configuration = try TMDBConfiguration.load()
+        let configuration = try configurationOverride ?? TMDBConfiguration.load()
         var components = URLComponents()
         components.scheme = "https"
         components.host = "api.themoviedb.org"

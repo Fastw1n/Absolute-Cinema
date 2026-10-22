@@ -1,4 +1,4 @@
-name: iOS build and storage checks
+name: iOS unit and UI tests
 
 on:
   push:
@@ -53,7 +53,7 @@ jobs:
               output.write("udid=" + phone["udid"] + "\n")
           PY
 
-      - name: Build app and run existing storage unit tests
+      - name: Build app and run XCTest unit and UI tests
         env:
           SIMULATOR_UDID: ${{ steps.simulator.outputs.udid }}
         run: |

@@ -47,6 +47,7 @@ struct MovieDetailsView: View {
                     .buttonStyle(.borderedProminent)
                     .foregroundStyle(Color("Background"))
                     .disabled(!viewModel.canRate)
+                    .accessibilityIdentifier("details.editRating")
 
                     Button(action: viewModel.toggleWatchlist) {
                         Label(viewModel.isWatchlisted ? "Убрать из желаемого" : "Хочу посмотреть",
@@ -62,8 +63,10 @@ struct MovieDetailsView: View {
 
                     if let saved = viewModel.savedRating {
                         Text("Моя оценка: \(saved.rating) из 10").font(.headline)
+                            .accessibilityIdentifier("details.savedRating")
                         if !saved.comment.isEmpty {
                             Text(saved.comment)
+                                .accessibilityIdentifier("details.savedComment")
                         }
                         Text("Дата оценки: \(saved.ratedAt.formatted(date: .abbreviated, time: .shortened))")
                             .font(.caption).foregroundStyle(Color("SecondaryText"))
