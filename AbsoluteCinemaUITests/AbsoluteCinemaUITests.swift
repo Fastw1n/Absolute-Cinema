@@ -46,10 +46,11 @@ final class AbsoluteCinemaUITests: XCTestCase {
         let comment = app.textViews["rating.comment"]
         XCTAssertTrue(comment.waitForExistence(timeout: 5))
         comment.tap()
-        let oldText = comment.value as? String ?? ""
-        comment.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: oldText.count))
-        comment.typeText("Unsaved changes")
-        XCTAssertEqual(comment.value as? String, "Unsaved changes")
+        // У TextEditor курсор после tap не гарантированно стоит в конце: удаление
+        // могло ничего не стереть и делало проверку нестабильной. Добавляем текст —
+        // этого достаточно, чтобы проверить отмену изменённого черновика.
+        comment.typeText(" temporary")
+        XCTAssertEqual(comment.value as? String, "Matrix baseline temporary")
         tap(app.buttons["rating.cancel"], in: app)
 
         // После отмены сохранённые значения должны остаться прежними.
